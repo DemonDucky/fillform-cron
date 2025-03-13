@@ -89,8 +89,16 @@ async function startCronJob() {
     // Authenticate with PocketBase
     const pb = await authenticatePB()
 
-    // Schedule the cron job to run every 2 minutes
+    // Schedule the cron job to run every minute
     cron.schedule('* * * * *', async () => {
+      // Generate random delay between 0 and 59 seconds
+      const randomDelay = Math.floor(Math.random() * 60) * 1000 // Convert to milliseconds
+
+      console.log(`Scheduled run with ${randomDelay / 1000} seconds delay...`)
+
+      // Wait for the random delay before processing
+      await new Promise(resolve => setTimeout(resolve, randomDelay))
+
       console.log('Running payment processing cron job...')
       await checkAndProcessPayments(pb)
     })
