@@ -83,7 +83,26 @@ async function checkAndProcessPayments(pb) {
   }
 }
 
-// Main function to start the cron job
+// Function to generate random time for stop (23:00 - 23:59) and start (06:00 - 07:59)
+function generateRandomTimes() {
+  const randomStopHour = 23 // Fixed at 23
+  const randomStopMinute = Math.floor(Math.random() * 60) // 0 to 59
+  const randomStartHour = Math.floor(Math.random() * 2) + 6 // 6 to 7
+  const randomStartMinute = Math.floor(Math.random() * 60) // 0 to 59
+
+  return {
+    stopHour: randomStopHour,
+    stopMinute: randomStopMinute,
+    startHour: randomStartHour,
+    startMinute: randomStartMinute
+  }
+}
+
+// Store today's random times
+let dailyTimes = generateRandomTimes()
+// Store the current day to reset times daily
+let currentDay = null
+
 async function startCronJob() {
   try {
     // Authenticate with PocketBase
@@ -91,8 +110,40 @@ async function startCronJob() {
 
     // Schedule the cron job to run every minute
     cron.schedule('* * * * *', async () => {
+      // Get current Vietnam time
+      const now = new Date()
+      const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
+      const hours = vietnamTime.getHours()
+      const minutes = vietnamTime.getMinutes()
+      const day = vietnamTime.getDate()
+
+      // Reset random times at midnight (new day)
+      if (currentDay !== day) {
+        dailyTimes = generateRandomTimes()
+        currentDay = day
+        console.log(
+          `New daily schedule - Stop: ${dailyTimes.stopHour}:${dailyTimes.stopMinute}, Start: ${dailyTimes.startHour}:${dailyTimes.startMinute}`
+        )
+      }
+
+      // Check if current time is within restricted period
+      const isBeforeStop =
+        hours < dailyTimes.stopHour || (hours === dailyTimes.stopHour && minutes <= dailyTimes.stopMinute)
+
+      const isAfterStart =
+        hours > dailyTimes.startHour || (hours === dailyTimes.startHour && minutes >= dailyTimes.startMinute)
+
+      const isRestrictedTime = !(isBeforeStop && isAfterStart)
+
+      if (isRestrictedTime) {
+        console.log(
+          `Cron job skipped - within restricted time (Stop: ${dailyTimes.stopHour}:${dailyTimes.stopMinute}, Start: ${dailyTimes.startHour}:${dailyTimes.startMinute})`
+        )
+        return
+      }
+
       // Generate random delay between 0 and 59 seconds
-      const randomDelay = Math.floor(Math.random() * 60) * 1000 // Convert to milliseconds
+      const randomDelay = Math.floor(Math.random() * 60) * 1000
 
       console.log(`Scheduled run with ${randomDelay / 1000} seconds delay...`)
 
@@ -105,8 +156,21 @@ async function startCronJob() {
 
     console.log('Payment processing cron job started')
 
-    // Optional: Run immediately on startup
-    checkAndProcessPayments(pb)
+    // Initial run check
+    const now = new Date()
+    const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
+    const hours = vietnamTime.getHours()
+    const minutes = vietnamTime.getMinutes()
+
+    const isBeforeStop =
+      hours < dailyTimes.stopHour || (hours === dailyTimes.stopHour && minutes <= dailyTimes.stopMinute)
+
+    const isAfterStart =
+      hours > dailyTimes.startHour || (hours === dailyTimes.startHour && minutes >= dailyTimes.startMinute)
+
+    if (isBeforeStop && isAfterStart) {
+      await checkAndProcessPayments(pb)
+    }
   } catch (error) {
     console.error('Failed to start cron job:', error)
   }
