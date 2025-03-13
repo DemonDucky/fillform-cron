@@ -29,7 +29,7 @@ async function processPayment(paymentToken) {
     console.log(`Processing payment: ${paymentToken}`)
 
     // Call your existing endpoint with the payment token
-    const response = await axios.post('http://localhost:5173/submit', {
+    const response = await axios.post(process.env.SUBMIT_URL, {
       paymentToken,
       amount: 1,
       fromCron: true
