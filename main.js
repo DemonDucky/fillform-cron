@@ -53,7 +53,7 @@ async function checkAndProcessPayments(pb) {
 
     // Query PocketBase for payments with status = 'paid'
     const records = await pb.collection('payments').getFullList({
-      filter: 'status = "paid" && distancing="true"',
+      filter: `status="paid" && distancing=${true}`,
       sort: 'created'
     })
 
@@ -63,11 +63,11 @@ async function checkAndProcessPayments(pb) {
     for (const record of records) {
       // Check if the payment should be processed now (respecting distancing if set)
       if (record.distancing && record.nextSubmitDate) {
-        const nextDate = new Date(record.nextSubmitDate)
-        const now = new Date()
+        const nextDate = new Date(record.nextSubmitDate).getTime()
+        const now = new Date().getTime()
 
         if (now < nextDate) {
-          console.log(`Skipping payment ${record.id} - scheduled for ${nextDate.toISOString()}`)
+          console.log(`Skipping payment ${record.id} - scheduled for ${new Date(nextDate)}`)
           continue
         }
       }
@@ -90,7 +90,7 @@ async function startCronJob() {
     const pb = await authenticatePB()
 
     // Schedule the cron job to run every 2 minutes
-    cron.schedule('*/2 * * * *', async () => {
+    cron.schedule('* * * * *', async () => {
       console.log('Running payment processing cron job...')
       await checkAndProcessPayments(pb)
     })
