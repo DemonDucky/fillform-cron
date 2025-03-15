@@ -105,11 +105,13 @@ let currentDay = null
 
 async function startCronJob() {
   try {
-    // Authenticate with PocketBase
-    const pb = await authenticatePB()
 
     // Schedule the cron job to run every minute
     cron.schedule('* * * * *', async () => {
+
+      // Authenticate with PocketBase
+      const pb = await authenticatePB()
+
       // Get current Vietnam time
       const now = new Date()
       const vietnamTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }))
@@ -169,6 +171,8 @@ async function startCronJob() {
       hours > dailyTimes.startHour || (hours === dailyTimes.startHour && minutes >= dailyTimes.startMinute)
 
     if (isBeforeStop && isAfterStart) {
+      // Authenticate with PocketBase
+      const pb = await authenticatePB()
       await checkAndProcessPayments(pb)
     }
   } catch (error) {
